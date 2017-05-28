@@ -36,7 +36,7 @@ public class ReceiveInfo {
 	   
 	   
 	   
-	private void writeToBuffer(short[] in,int re) {
+	private void writeToBuffer(short[] in,int re) { // write the recorded data in processing queue
 		try{  
 			for(int i = 0; i < BUF_SIZE; i++)
 					 items.put(in[i]);
@@ -114,7 +114,7 @@ public class ReceiveInfo {
 			String NewFile="R-"+"LL-"+String.valueOf(SSsize)+"-"+String.valueOf(datasize)+"-"+String.valueOf(samples*(databits))+"bits";
 			short[] data;
 			int peakInd=0;
-			short[] Fildata=new short[C];
+			short[] Fildata=new short[C]; // array to filter recorded data
 			double[] Ddata=new double[C+pr];
 			data = new short[C+pr];
 			int arr=pr;
@@ -125,7 +125,7 @@ public class ReceiveInfo {
 			short[] dataOnly=new short[C];
 			int lenx=Ddata.length;
 			int leny=pr;
-			double[] check1=new double[leny];
+			double[] check1=new double[leny];// arrays for sliding window to find preamble
 			double[] check2=new double[leny];
 			
 			int[] store={1,1,1,0,0,0,1,0,0,1,0};  
@@ -137,6 +137,7 @@ public class ReceiveInfo {
 			int bitlen1=pr/store.length;
 			double[] buf1=new double[pr];
 			int c1=0;int j1=0;
+		//create stored preamble pattern
 			while(c1<prp.length){
 				if(prp[c1]==0)
 					vol=0;
@@ -250,8 +251,8 @@ public class ReceiveInfo {
 					flag=1;
 					peakInd=lpind2;
 				}
-				int sh=0;
-//FFT Decoding 
+				int sh=0; // peakInd have the position of preamble in array
+//FFT Decoding (logic to get data bits from recieved frame)
 				if(flag==1){
 					flag=0;
 					FFT_Decoder d=new FFT_Decoder();
