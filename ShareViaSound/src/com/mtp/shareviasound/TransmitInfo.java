@@ -13,24 +13,24 @@ public class TransmitInfo {
 	final double lambda=0.35;
 	 
 
-	float rate=44100;
-	int len=2048;
-	int amplitude=25000;
+	float rate=44100; //sampling rate
+	int len=2048; // #samples per bit
+	int amplitude=25000;  // for mobile phones
 	int freq;
 	int vol=amplitude;
 	final int sampleRate = 44100;
 	int bitlen=len;
-	short[] buf=new short[bitlen];
-	int[] store={1,1,1,0,0,0,1,0,0,1,0}; 
+	short[] buf=new short[bitlen]; // to represent one bit
+	int[] store={1,1,1,0,0,0,1,0,0,1,0}; // stored preamble pattern
 	int[] pr=new int[store.length];
-	int bitlen1=(int)rate/(store.length*3*4);
-	int d=(int)Math.ceil((double)56/3);
+	int bitlen1=(int)rate/(store.length*3*4); // # samples per bit in preamble (decided by experiments) ~= 334 samples 
+	int d=(int)Math.ceil((double)56/3); // # data bits per frame
 	final AudioTrack audioTrack3 = new AudioTrack(AudioManager.STREAM_MUSIC,
 			sampleRate, AudioFormat.CHANNEL_OUT_MONO,
-			AudioFormat.ENCODING_PCM_16BIT,2*(bitlen1*pr.length+4096+bitlen*d),//+4096+bitlen*d.length/2),
+			AudioFormat.ENCODING_PCM_16BIT,2*(bitlen1*pr.length+4096+bitlen*d),//bufer size...+4096+bitlen*d.length/2),
 			AudioTrack.MODE_STREAM);
-	short[] ubuf1=new short[bitlen1*pr.length+4096+bitlen*d];
-	short[] ubuf2=new short[bitlen1*pr.length+4096+bitlen*d];
+	short[] ubuf1=new short[bitlen1*pr.length+4096+bitlen*d];//frame length
+	short[] ubuf2=new short[bitlen1*pr.length+4096+bitlen*d]; // not in use
 	boolean Fframe=true;
 	int randomInt;
 	int cellID,rssi;
@@ -43,7 +43,7 @@ public class TransmitInfo {
 	public void Play(){
 		stop=true;
 		System.arraycopy(store, 0, pr, 0, store.length);
-		for(int k=0;k<ubuf2.length;k++){
+		for(int k=0;k<ubuf2.length;k++){ // it was used for experiment purpose, not in use now.... 
 			double angle = ((k/(rate))*18500*2.0*Math.PI);
 			ubuf2[k]=(short)(Math.sin(angle)*vol);
 		}
@@ -60,27 +60,27 @@ public class TransmitInfo {
 				cellID = MainActivity.cellID;
 				rssi=MainActivity.rssi;
 				if(rssi==99)	{rssi=32;}
-				String S1=Integer.toBinaryString(cellID);
-       			String S2=Integer.toBinaryString(rssi);
+				String S1=Integer.toBinaryString(cellID); // s1=cell id (16 bit)
+       			String S2=Integer.toBinaryString(rssi); // s2=rssi (6 bits)
        			int x;
        			int interval;
        			final int a[]=new int[20];String s="";
        			int c1=0;int j1=0;
        			if(Fframe==true){
        				x=1;
-       				interval=(int)(x*1300);
-       				randomInt = randomGenerator.nextInt(15);
-       				String S3=Integer.toBinaryString(randomInt);
+       				interval=(int)(x*1300); // 1300ms in between 2 consicutive frames
+       				randomInt = randomGenerator.nextInt(15); // to generate random sequence number
+       				String S3=Integer.toBinaryString(randomInt); // S3 is sequence number
        				for(int idx=4-(S3.length());idx<4;++idx){
-       					a[idx]=S3.charAt(idx+S3.length()-4)-'0';
+       					a[idx]=S3.charAt(idx+S3.length()-4)-'0'; // a is an array to represent first frame bits
        				}
        				for (int idx = 4+16-(S1.length()); idx <a.length; ++idx){
-       					a[idx]=S1.charAt(idx-20+S1.length())-'0';
+       					a[idx]=S1.charAt(idx-20+S1.length())-'0'; // add sequence number first in array and then add cellid
        				}
 	             
        			}
        			else{
-       				x=3;
+       				x=3; // 3*1300ms in between different frames
        				interval=(int)(x*1300);
        				operator=MainActivity.operator;
        				if(operator.equalsIgnoreCase("Dolphin")) {
@@ -114,7 +114,7 @@ public class TransmitInfo {
 	            
        		//	obj3.writeStringFile("/sdcard/generated.csv",s);
        			
-       			int gen[]=CRC_At_Sender.genCRC(a);
+       			int gen[]=CRC_At_Sender.genCRC(a); // it will generate CRC for array a and then append it
        			
        			while(c1<pr.length){
        				if(pr[c1]==0)
@@ -124,7 +124,8 @@ public class TransmitInfo {
        				
        				for(int k=0;k<bitlen1;k++){
        					double angle = ((k/(rate))*16000*2.0*Math.PI);
-       					if(k<bitlen1/2)
+       					// first increase vol till half length and then decrease in second half, to avoid glitch sound
+					if(k<bitlen1/2)
        						ubuf1[c1*bitlen1+k]=(short)(Math.sin(angle)*vol*2*k/bitlen1);//buf1[k];
        					else	
        						ubuf1[c1*bitlen1+k]=(short)(Math.sin(angle)*vol*2*(bitlen1-k)/bitlen1);
@@ -143,6 +144,7 @@ public class TransmitInfo {
        			}  
        			int c=0;
        			j=pr.length*bitlen1+4096;
+			// create frequency samples according to array bits in gen (a+CRC)
        			while(c+2<gen.length){
        				if(gen[c]==0 && gen[c+1]==0 && gen[c+2]==0)
        					freq=16494;
@@ -172,7 +174,7 @@ public class TransmitInfo {
        				}
        				c=c+3;
        			}
-       			if(c+1==gen.length){
+       			if(c+1==gen.length){ 
        				if(gen[c]==0){
        					freq=16494;
        				}
